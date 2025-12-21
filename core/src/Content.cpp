@@ -7,8 +7,8 @@
 
 #include "CharacterSet.h"
 #include "ECI.h"
-#include "HRI.h"
-#include "TextDecoder.h"
+// #include "HRI.h" // ZXING_CUSTOM - Removed for size optimization (not needed for QR)
+// #include "TextDecoder.h" // ZXING_CUSTOM - Already disabled
 #include "Utf.h"
 #include "ZXAlgorithms.h"
 
@@ -149,16 +149,11 @@ std::string Content::text(TextMode mode) const
 	case TextMode::Plain: return render(false);
 	case TextMode::ECI: return render(true);
 	case TextMode::HRI:
-		switch (type()) {
-		case ContentType::GS1: {
-			auto plain = render(false);
-			auto hri = HRIFromGS1(plain);
-			return hri.empty() ? plain : hri;
-		}
-		case ContentType::ISO15434: return HRIFromISO15434(render(false));
-		case ContentType::Text: return render(false);
-		default: return text(TextMode::Escaped);
-		}
+		/*
+		 * ZXING_CUSTOM - HRI processing removed for size optimization (not needed for QR)
+		 * Original code used HRIFromGS1 and HRIFromISO15434 for GS1/ISO15434 content types
+		 */
+		return render(false); // Fallback to plain text for all HRI requests
 	case TextMode::Hex: return ToHex(bytes);
 	case TextMode::Escaped: return EscapeNonGraphical(render(false));
 	}

@@ -22,28 +22,16 @@ struct BarcodeFormatName
 	std::string_view name;
 };
 
+/*
+ * ZXING_CUSTOM - Reduced barcode format table for QR-only usage
+ * Removed: Aztec, Codabar, Code39, Code93, Code128, DataBar, DataBarExpanded,
+ *          DataMatrix, DXFilmEdge, EAN8, EAN13, ITF, MaxiCode, PDF417, UPCA, UPCE
+ */
 static BarcodeFormatName NAMES[] = {
 	{BarcodeFormat::None, "None"},
-	{BarcodeFormat::Aztec, "Aztec"},
-	{BarcodeFormat::Codabar, "Codabar"},
-	{BarcodeFormat::Code39, "Code39"},
-	{BarcodeFormat::Code93, "Code93"},
-	{BarcodeFormat::Code128, "Code128"},
-	{BarcodeFormat::DataBar, "DataBar"},
-	{BarcodeFormat::DataBarExpanded, "DataBarExpanded"},
-	{BarcodeFormat::DataMatrix, "DataMatrix"},
-	{BarcodeFormat::DXFilmEdge, "DXFilmEdge"},
-	{BarcodeFormat::EAN8, "EAN-8"},
-	{BarcodeFormat::EAN13, "EAN-13"},
-	{BarcodeFormat::ITF, "ITF"},
-	{BarcodeFormat::MaxiCode, "MaxiCode"},
 	{BarcodeFormat::MicroQRCode, "MicroQRCode"},
-	{BarcodeFormat::PDF417, "PDF417"},
 	{BarcodeFormat::QRCode, "QRCode"},
 	{BarcodeFormat::RMQRCode, "rMQRCode"},
-	{BarcodeFormat::UPCA, "UPC-A"},
-	{BarcodeFormat::UPCE, "UPC-E"},
-	{BarcodeFormat::LinearCodes, "Linear-Codes"},
 	{BarcodeFormat::MatrixCodes, "Matrix-Codes"},
 };
 
