@@ -220,6 +220,23 @@ static ECI ParseECIValue(BitSource& bits)
  * @param bits the stream of bits that might have a terminator code
  * @param version the QR or micro QR code version
  */
+/**
+ * ZXING_CUSTOM: the bits a segment of `count` characters takes after its count
+ * field (ISO 18004:2015 7.4.3 - 7.4.6), so a count the symbol cannot hold is
+ * refused before anything is reserved or read (audit 2026-08 W17-F01).
+ */
+static long SegmentBits(CodecMode mode, int count)
+{
+	switch (mode) {
+	case CodecMode::NUMERIC: return 10L * (count / 3) + (count % 3 == 2 ? 7 : count % 3 == 1 ? 4 : 0);
+	case CodecMode::ALPHANUMERIC: return 11L * (count / 2) + 6L * (count % 2);
+	case CodecMode::BYTE: return 8L * count;
+	case CodecMode::KANJI:
+	case CodecMode::HANZI: return 13L * count;
+	default: return 0;
+	}
+}
+
 bool IsEndOfStream(const BitSource& bits, const Version& version)
 {
 	const int bitsRequired = TerminatorBitsLength(version);
@@ -248,7 +265,9 @@ DecoderResult DecodeBitStream(ByteArray&& bytes, const Version& version, ErrorCo
 
 	// try // ZXING_CUSTOM
 	// { // ZXING_CUSTOM
-		while(!IsEndOfStream(bits, version)) {
+		// ZXING_CUSTOM: upstream leaves this loop by an exception at the first
+		// error; here it stops at the first error or at a read past the end.
+		while(!error && !bits.overrun() && !IsEndOfStream(bits, version)) {
 			CodecMode mode;
 			if (modeBitLength == 0)
 				mode = CodecMode::NUMERIC; // MicroQRCode version 1 is always NUMERIC and modeBitLength is 0
@@ -321,6 +340,10 @@ DecoderResult DecodeBitStream(ByteArray&& bytes, const Version& version, ErrorCo
 				}
 				
 				int count = bits.readBits(CharacterCountBits(mode, version));
+				if (bits.overrun() || SegmentBits(mode, count) > bits.available()) { // ZXING_CUSTOM
+					error = FormatError("Truncated bit stream");
+					break;
+				}
 				DecodeHanziSegment(bits, count, result);
 				break;
 			}
@@ -328,6 +351,10 @@ DecoderResult DecodeBitStream(ByteArray&& bytes, const Version& version, ErrorCo
 				// "Normal" QR code modes:
 				// How many characters will follow, encoded in this mode?
 				int count = bits.readBits(CharacterCountBits(mode, version));
+				if (bits.overrun() || SegmentBits(mode, count) > bits.available()) { // ZXING_CUSTOM
+					error = FormatError("Truncated bit stream");
+					break;
+				}
 				switch (mode) {
 				case CodecMode::NUMERIC:      DecodeNumericSegment(bits, count, result); break;
 				case CodecMode::ALPHANUMERIC: DecodeAlphanumericSegment(bits, count, result); break;
@@ -348,6 +375,8 @@ DecoderResult DecodeBitStream(ByteArray&& bytes, const Version& version, ErrorCo
 		error = std::move(e);
 	}
 	*/
+	if (bits.overrun() && !error) // ZXING_CUSTOM: the catch above, without exceptions
+		error = FormatError("Truncated bit stream");
 
 	return DecoderResult(std::move(result))
 		.setError(std::move(error))

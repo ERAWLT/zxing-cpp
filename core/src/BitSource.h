@@ -24,6 +24,7 @@ class BitSource
 	const ByteArray& _bytes;
 	int _byteOffset = 0;
 	int _bitOffset = 0;
+	bool _overrun = false; // ZXING_CUSTOM: a read asked for bits the source does not have
 
 public:
 	/**
@@ -67,6 +68,14 @@ public:
 	* @return number of bits that can be read successfully
 	*/
 	int available() const;
+
+	/**
+	* ZXING_CUSTOM: upstream throws std::out_of_range when a read asks for more bits than
+	* are left (or for <1 or >32 bits); the firmware builds without exceptions, so such a
+	* read reads nothing, returns 0 and is remembered here. The caller must check it.
+	* @return whether a read has asked for bits past the end of the source
+	*/
+	bool overrun() const { return _overrun; }
 };
 
 } // ZXing
