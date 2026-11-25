@@ -19,16 +19,16 @@ BitSource::available() const
 	return 8 * (Size(_bytes) - _byteOffset) - _bitOffset;
 }
 
-static int ReadBitsImpl(int numBits, const ByteArray& _bytes, int available, int& _byteOffset, int& _bitOffset)
+static bool InRange(int numBits, int available)
 {
-	/*
-	 * ZXING_CUSTOM
-	 *
-	if (numBits < 1 || numBits > 32 || numBits > available) {
-		throw std::out_of_range("BitSource::readBits: out of range");
-	}
-	*/
+	return numBits >= 1 && numBits <= 32 && numBits <= available;
+}
 
+// Callers check InRange() first (ZXING_CUSTOM: the upstream check threw
+// std::out_of_range here, which the firmware cannot catch; without any check a
+// QR's character count read on past the codeword buffer, audit 2026-08 W17-F01).
+static int ReadBitsImpl(int numBits, const ByteArray& _bytes, int& _byteOffset, int& _bitOffset)
+{
 	int result = 0;
 
 	// First, read remainder from current byte
@@ -68,14 +68,20 @@ static int ReadBitsImpl(int numBits, const ByteArray& _bytes, int available, int
 
 int BitSource::readBits(int numBits)
 {
-	return ReadBitsImpl(numBits, _bytes, available(), _byteOffset, _bitOffset);
+	if (!InRange(numBits, available())) {
+		_overrun = true;
+		return 0;
+	}
+	return ReadBitsImpl(numBits, _bytes, _byteOffset, _bitOffset);
 }
 
 int BitSource::peakBits(int numBits) const
 {
+	if (!InRange(numBits, available()))
+		return 0;
 	int bitOffset = _bitOffset;
 	int byteOffset = _byteOffset;
-	return ReadBitsImpl(numBits, _bytes, available(), byteOffset, bitOffset);
+	return ReadBitsImpl(numBits, _bytes, byteOffset, bitOffset);
 }
 
 } // ZXing
